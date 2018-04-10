@@ -15,7 +15,9 @@ if (typeof ContentScript !== 'function') {
 		switchStatus:true,
 		status: 'inactive',
     selectedVal: '',
+		table:'',
     sortedRows:[],
+		dropdownIcon:'resources/images/drop-down-arrow.png',
 		initFunctionality: function () {
 			var self = this;
 			this.status = 'active';
@@ -35,11 +37,11 @@ if (typeof ContentScript !== 'function') {
     },
 		enableArrive:function() {
 			var self = this;
-      this.document.arrive(this.selectors.tableUpcomingIco, { existing: true, onceOnly:true }, function (e) {
+      this.document.arrive(this.selectors.tableWrapperDiv, { existing: true }, function (e) {
         if (self.tabActive) {
-        	self.table = e;
-          self.changeTable(e);
-          self.enableDropDown(e);
+					self.table = self.$(e).find(self.selectors.tableUpcomingIco);
+          self.changeTable(self.table);
+          self.enableDropDown(self.table);
           }
       });
 		},
@@ -78,9 +80,15 @@ if (typeof ContentScript !== 'function') {
 				case 'goal_dsc':
           self.sortRecievedCol(false, element, self.selectors.goalDiv, 'goal_dsc');
           break;
+				case 'date_asc':
+          self.sortRecievedCol(true, element, self.selectors.dateColumnDiv, 'date_asc');
+					break;
+				case 'date_dsc':
+          self.sortRecievedCol(false, element, self.selectors.dateColumnDiv, 'date_dsc');
+          break;
       	}
       },
-		categorySort:function(flag, element, selector){
+			categorySort:function(flag, element, selector){
 			var self = this;
       self.sortOrder[flag].forEach((x) => {
         var rowsTemp = self.$(element).find(selector +':contains("'+x+'")');
@@ -97,25 +105,48 @@ if (typeof ContentScript !== 'function') {
         var $rows = [];
         var status = '';
         var spanSelector = '';
+        var spanSelect_1 = '';
         if(flag.indexOf('recieved') != -1) {
         	status = 'Pending';
         	spanSelector = 'span:first-child';
+          spanSelect_1 = 'span:first-child'
+				}else if(flag.indexOf('date') != -1) {
+        	status = 'DATE: TBA';
+        	spanSelector = '';
+        	spanSelect_1 = '';
 				} else {
         	status = 'Not Set';
         	spanSelector = '';
+        	spanSelect_1 = 'span:first-child';
 				}
-        self.$("[id]").each(function(){
-          if(self.$(this).attr("id")== selector){
-            if(self.$(this).closest('div.tabs__content.active').length > 0) {
-              $rows.push(self.$(this));
+				if(flag.indexOf('date') == -1) {
+          self.$("[id]").each(function(){
+            if(self.$(this).attr("id")== selector){
+              if(self.$(this).closest('div.tabs__content.active').length > 0) {
+                $rows.push(self.$(this));
+              }
             }
+          });
+				} else {
+          self.$(selector).each(function() {
+              if(self.$(this).closest('div.tabs__content.active').length > 0) {
+                $rows.push(self.$(this));
+              }
+          });
+				}
+        var $rowsWithoutPend = $rows.filter(function(ele) {
+        	if(spanSelector === '') {
+        		return self.$(ele).text().indexOf(status) === -1
+					} else {
+            return self.$(spanSelector,ele).text().indexOf(status) === -1;
           }
         });
-        var $rowsWithoutPend = $rows.filter(function(ele) {
-          return self.$(spanSelector,ele).text() != status;
-        });
         var $rowsWithPend = $rows.filter(function(ele) {
-          return self.$('span:first-child',ele).text() === status;
+        	if(spanSelect_1 === '') {
+            return self.$(ele).text().indexOf(status) !== -1;
+					} else {
+            return self.$(spanSelect_1,ele).text().indexOf(status) !== -1;
+          }
         })
         $rowsWithoutPend.sort(function(a, b) {
           if(flag.indexOf('recieved') != -1) {
@@ -131,11 +162,13 @@ if (typeof ContentScript !== 'function') {
           self.$($rowsWithPend).each(function(index, row){
             self.pushRow(this);
           });
-				}
-        self.$($rowsWithoutPend).each(function(index, row){
-             self.pushRow(this);
-        });
-        if(!Asc) {
+          self.$($rowsWithoutPend).each(function(index, row){
+            self.pushRow(this);
+          });
+				} else if(!Asc) {
+          self.$($rowsWithoutPend).each(function(index, row){
+            self.pushRow(this);
+          });
           self.$($rowsWithPend).each(function(index, row){
             self.pushRow(this);
           });
@@ -149,22 +182,35 @@ if (typeof ContentScript !== 'function') {
           self.sortedRows.push(temp);
         }
       },
-			replaceRows:function(element){
+			replaceRows:function(element) {
 			var self = this;
+			if(self.$('#wrapper').length > 0) {
+				self.$('div#wrapper').removeAttr('id');
+			}
         element = self.$(element).find(self.selectors.category_desk + ' ' +self.selectors.ico_row);
         self.$(element).wrapAll('<div id="wrapper"></div>');
-        self.$('#wrapper').replaceWith(self.sortedRows);
+        // self.$('#wrapper').empty().append(self.sortedRows);
+        self.$('#wrapper').empty()
+        self.sortedRows.forEach(function(x,i) {
+          self.$('#wrapper').append(x);
+				})
+        // self.$('#wrapper').replaceWith(self.sortedRows);
 		},
 		convertInt:function(str) {
 			var self =  this;
-			str = str.replace(/,/g,'');
-			str = str.replace('$','');
+			if(str.indexOf('d left') != -1) {
+        str = str.replace('d left','');
+			} else {
+        str = str.replace(/,/g,'');
+        str = str.replace('$','');
+			}
 			return parseInt(str);
 		},
 		enableDropDown:function(element){
 			var self = this;
-			var dropdown = `<label> Sort Order:</label> 
-							<select id="dropdown">
+			var iconUrl = self.chrome.runtime.getURL(self.dropdownIcon);
+			var dropdown = `<label> Sort:</label> 
+							<select class="dropdown" id="dropdown">
 							<option title="Select option" value="">Select</option>
 						<option value="interest_asc">Interest Ascending</option>
 						<option value="interest_dsc">Interest Descending</option>
@@ -174,16 +220,19 @@ if (typeof ContentScript !== 'function') {
 						<option value="recieved_dsc">Recieved Descending</option>
 						<option value="goal_asc">Goal Aescending</option>
 						<option value="goal_dsc">Goal Descending</option>
+						<option value="date_asc">Date Aescending</option>
+						<option value="date_dsc">Date Descending</option>
 					</select>
 				<div id="dvDiv" style="display:none;position:absolute;padding:10px;border:1px solid #333333;;background-color:#fffedf;font-size:smaller;z-index:999;"></div>
         <iframe id="frm" style="display:none;position:absolute;z-index:998"></iframe>
 				`;
 			var header = self.$(element).closest('main').find(self.selectors.upcomingIco_header);
 			self.$(header).append(dropdown);
+      self.$('#dropdown').css('background', 'url('+iconUrl+') 96% / 7% no-repeat #eee');
 			self.$('#dropdown').change(function() {
         self.selectedVal = this.value;
         self.selectedText = this.options[this.selectedIndex].text;
-        self.changeTable(self.table);
+        self.changeTable(self.$(this).closest('#careg_ico').find(self.selectors.tableUpcomingIco));
 			})
 			self.$('#dropdown').mouseenter(function(event) {
 				var e = event;

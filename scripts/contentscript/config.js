@@ -1,12 +1,15 @@
 var selectors = {
-	tableUpcomingIco : 'div.tabs__content .col-lg-6.col-md-12.col-12.all',
+	tableUpcomingIco : 'div.tabs__content.active .col-lg-6.col-md-12.col-12',
 	upcomingIco_header : 'div header.category-table-header',
 	interestDiv: 'div.interest',
 	categoryDiv:'div.categ_type',
 	recievedDiv:'new_column_categ_invisted',
 	goalDiv:'categ_desctop',
 	ico_row:'div.col-md-12.col-12.a_ico',
-	category_desk:'div .category-desk'
+	category_desk:'div .category-desk',
+	categoryTabDiv:'div.categ_new_tabs',
+	tableWrapperDiv:'#careg_ico',
+	dateColumnDiv:'div.date.active'
 };
 var sortOrder = {
 	interest_asc: [
@@ -48,10 +51,14 @@ var sortOrder = {
 		'Verification',
 		'Currency',
 		'Security',
+		'Payments',
+		'Trading',
 		'Marketplace'
 	],
 	category_dsc: [
     'Marketplace',
+		'Trading',
+		'Payments',
     'Security',
     'Currency',
     'Verification',
@@ -82,11 +89,19 @@ var sortOrder = {
 		'Aescending Values'
 	],
 	goal_asc:[
-		'Not Set',
+    'Not Set',
 		'Aescending Values'
 	],
 	goal_dsc:[
 		'Descending Values',
 		'Not Set'
-	]
+	],
+  date_asc:[
+    'DATE: TBA',
+    'Aescending Values'
+  ],
+  date_dsc:[
+    'Descending Values',
+    'DATE: TBA'
+  ]
 }
